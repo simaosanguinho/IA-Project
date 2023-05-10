@@ -42,10 +42,11 @@ class Board:
         self.rows = rows
         self.columns = columns
         self.hints = hints
-
+        
         # create matrix for the board cells
         self.cells = np.matrix([[' ' for x in range(len(rows))]
                                for y in range(len(columns))])
+        
         # add hints
         for hint in hints:
             self.cells[hint[0], hint[1]] = hint[2]
@@ -54,9 +55,8 @@ class Board:
             # update values for rows and columns
             self.rows[hint[0]] -= 1
             self.columns[hint[1]] -= 1
-
     
-        print(rows, columns)
+
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if (self.valid_cell(row, col)):
@@ -90,15 +90,21 @@ class Board:
         orientação 'orientation' e tamanho 'size'."""
 
         row, col, value, size, orientation = action[0], action[1], \
-            action[2], action[3] == const.EMPTY, action[4]
+            action[2], action[3], action[4]
 
         if (orientation == const.HORIZONTAL):
-            for i in range(size+1):
+            for i in range(size):
+                cell = self.get_value(row, col+i)
+                if (cell == None):
+                    continue
                 if (self.get_value(row, col+i) == const.EMPTY):
                     self.set_value(row, col+i, value)
         elif (orientation == const.VERTICAL):
-            for i in range(size+1):
-                if (self.get_value(row+i, col) == const.EMPTY):
+            for i in range(size):
+                cell = self.get_value(row+i, col)
+                if (cell == None):
+                    continue
+                if (cell == const.EMPTY):
                     self.set_value(row+i, col, value)
         
         else:
@@ -160,35 +166,52 @@ class Bimaru(Problem):
 
         board = state.board
         actions = []
+        
 
         # MAYBE MERGE BOTH LOOPS INTO ONE
         # any row with 0
         for row in range(const.BOARD_SIZE + 1):
             if (board.rows[row] == 0):
-                actions.append([row, 0, '.', const.BOARD_SIZE, const.HORIZONTAL])
+                actions.append([row, 0, '.', const.BOARD_SIZE+1, const.HORIZONTAL])
 
         # any column with 0
         for col in range(const.BOARD_SIZE + 1):
             if (board.columns[col] == 0):
-                actions.append([0, col, '.', const.BOARD_SIZE, const.VERTICAL])
+                actions.append([0, col, '.', const.BOARD_SIZE+1, const.VERTICAL])
 
-        # MARK CELL AFTER SURROUNDED
         # fill the cells around an non water/empty cell with water
         for row in range(const.BOARD_SIZE + 1):
             for col in range(const.BOARD_SIZE + 1):
-                # circle
-                if (board.get_value(row, col) == CIRCLE):
+                # circle - ALFA MAX CHAR 
+                if (board.get_value(row, col) in ['C', 'c']):
+                    print("ENCONTREIU", "ROW", row, "COL", col)
                     actions.append([row-1, col-1, '.', 3, const.HORIZONTAL])
                     actions.append([row-1, col-1, '.', 3, const.VERTICAL])
-                    actions.append([row-1, col+1, '.', 3, const.HORIZONTAL])
-                    actions.append([row+1, col-1, '.', 3, const.VERTICAL])
-        
+                    actions.append([row-1, col+1, '.', 3, const.VERTICAL])
+                    actions.append([row+1, col-1, '.', 3, const.HORIZONTAL])
+                # middle - fill diagonals with water    
+                elif (board.get_value(row, col) in ['m', 'M']):
+                    actions.append([row-1, col-1, '.', 1, const.HORIZONTAL])
+                    actions.append([row-1, col+1, '.', 1, const.HORIZONTAL])
+                    actions.append([row+1, col-1, '.', 1, const.HORIZONTAL])
+                    actions.append([row+1, col+1, '.', 1, const.HORIZONTAL])
+                
                 # top
-                if(board.get_value(row, col) == TOP):
+                elif (board.get_value(row, col) in ['t', 'T']):
+                    print("ENCONTREIU", "ROW", row, "COL", col)
                     actions.append([row-1, col-1, '.', 3, const.HORIZONTAL])
                     actions.append([row-1, col-1, '.', 4, const.VERTICAL])
                     actions.append([row-1, col+1, '.', 4, const.VERTICAL])
-                    actions.append([row+1, col, '.', 1, const.HORIZONTAL])
+                
+                    # DECIDIR SE METO UM M OU UM B - CRIAR UM ICONE INTERMEDIO
+                    actions.append([row+1, col, 'm', 1, const.HORIZONTAL]) 
+                
+                # bottom
+                if(board.get_value(row, col) in ['b', 'B']):
+                    actions.append([row+1, col-1, '.', 3, const.HORIZONTAL])
+                    actions.append([row-2, col-1, '.', 4, const.VERTICAL])
+                    actions.append([row-2, col+1, '.', 4, const.VERTICAL])
+                    actions.append([row-1, col, 'm', 1, const.HORIZONTAL]) 
                 
         return actions
 
@@ -207,6 +230,7 @@ class Bimaru(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
+        # FALTA VERIFICAR SE OS BARCOS QUE SE PRETENDEM ESTAO TODOS INCLUIDOS
         return all(x == 0 for x in state.board.rows) and all(x == 0 for x in state.board.columns)
 
     def h(self, node: Node):
@@ -232,8 +256,12 @@ if __name__ == "__main__":
     initial_state = BimaruState(board)
 
     actions = problem.actions(initial_state)
+    print('GGDGD')
     for action in actions:
+        print(action)
+        
         initial_state = problem.result(initial_state, action)
+    
 
     
     print(initial_state.board)
