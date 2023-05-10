@@ -55,8 +55,8 @@ class Board:
             self.rows[hint[0]] -= 1
             self.columns[hint[1]] -= 1
 
-    
         print(rows, columns)
+
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if (self.valid_cell(row, col)):
@@ -90,7 +90,7 @@ class Board:
         orientação 'orientation' e tamanho 'size'."""
 
         row, col, value, size, orientation = action[0], action[1], \
-            action[2], action[3] == const.EMPTY, action[4]
+            action[2], action[3], action[4]
 
         if (orientation == const.HORIZONTAL):
             for i in range(size+1):
@@ -99,8 +99,7 @@ class Board:
         elif (orientation == const.VERTICAL):
             for i in range(size+1):
                 if (self.get_value(row+i, col) == const.EMPTY):
-                    self.set_value(row+i, col, value)
-        
+                    self.set_value(row+i, col, value)    
         else:
             return
 
@@ -165,31 +164,24 @@ class Bimaru(Problem):
         # any row with 0
         for row in range(const.BOARD_SIZE + 1):
             if (board.rows[row] == 0):
-                actions.append([row, 0, '.', const.BOARD_SIZE, const.HORIZONTAL])
+                actions.append("FILL ROW")
 
         # any column with 0
         for col in range(const.BOARD_SIZE + 1):
             if (board.columns[col] == 0):
-                actions.append([0, col, '.', const.BOARD_SIZE, const.VERTICAL])
+                actions.append("FILL COLUMN")
 
-        # MARK CELL AFTER SURROUNDED
-        # fill the cells around an non water/empty cell with water
+        # fill the cells around a circle
         for row in range(const.BOARD_SIZE + 1):
             for col in range(const.BOARD_SIZE + 1):
-                # circle
-                if (board.get_value(row, col) == CIRCLE):
-                    actions.append([row-1, col-1, '.', 3, const.HORIZONTAL])
-                    actions.append([row-1, col-1, '.', 3, const.VERTICAL])
-                    actions.append([row-1, col+1, '.', 3, const.HORIZONTAL])
-                    actions.append([row+1, col-1, '.', 3, const.VERTICAL])
-        
-                # top
-                if(board.get_value(row, col) == TOP):
-                    actions.append([row-1, col-1, '.', 3, const.HORIZONTAL])
-                    actions.append([row-1, col-1, '.', 4, const.VERTICAL])
-                    actions.append([row-1, col+1, '.', 4, const.VERTICAL])
-                    actions.append([row+1, col, '.', 1, const.HORIZONTAL])
-                
+                if (board.get_value(row, col) == const.CIRCLE):
+                    actions.append("FILL CIRCLE")
+
+        for row in range(const.BOARD_SIZE + 1):
+            for col in range(const.BOARD_SIZE + 1):
+                if (board.get_value(row, col) in ["T", "t"]):
+                    actions.append("FILL EMPTY")
+
         return actions
 
     def result(self, state: BimaruState, action):
@@ -197,7 +189,6 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        
 
         board = state.board
         board.do_action(action)
@@ -228,12 +219,11 @@ if __name__ == "__main__":
     # Criar uma instância de Bimaru:
     problem = Bimaru(board)
     # Criar um estado com a configuração inicial:
-    
+
     initial_state = BimaruState(board)
 
     actions = problem.actions(initial_state)
     for action in actions:
         initial_state = problem.result(initial_state, action)
 
-    
     print(initial_state.board)
