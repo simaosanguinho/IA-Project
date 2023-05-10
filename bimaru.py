@@ -8,6 +8,7 @@
 
 import sys
 from sys import stdin
+import constants as const
 import numpy as np
 from search import (
     Problem,
@@ -18,6 +19,9 @@ from search import (
     greedy_search,
     recursive_best_first_search,
 )
+
+
+BOARD_SIZE = 9;
 
 
 class BimaruState:
@@ -39,7 +43,7 @@ class Board:
     rows = []
     columns = []
     hints = []
-    matrix = np.matrix([])
+    cells = np.matrix([])
 
     def __init__(self, rows: list, columns: list, hints: list):
         self.rows = rows
@@ -47,29 +51,37 @@ class Board:
         self.hints = hints
 
         # create matrix for the board cells
-        self.matrix = np.matrix([[' ' for x in range(len(rows))] for y in range(len(columns))])
+        self.cells = np.matrix([[' ' for x in range(len(rows))] for y in range(len(columns))])
         #add hints
         for hint in hints:
-            self.matrix[int(hint[0]), int(hint[1])] = hint[2]
-        
-        print(self.matrix)
-
+            self.cells[hint[0], hint[1]] = hint[2]
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        pass
+        return self.cells[row, col]
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
-        # TODO
-        pass
+              
+        if (row == 0):
+            return (None, self.cells[row+1, col])
+        elif (row == const.BOARD_SIZE):
+            return (self.cells[row-1, col], None)
+        else:
+            return (self.cells[row-1, col], self.cells[row+1, col])
+
 
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        # TODO
-        pass
+        
+        if (col == 0):
+            return (None, self.get_value(row, col+1))
+        elif (col == const.BOARD_SIZE):
+            return (self.get_value(row, col-1), None)
+        else:
+            return (self.get_value(row, col-1), self.get_value(row, col+1))
 
     @staticmethod
     def parse_instance():
@@ -86,22 +98,23 @@ class Board:
         columns = []
         hints = []
         while True:
-            line = stdin.readline().split()
+            instance = stdin.readline().split()
+            line = [int(x) if x.isdigit() else x for x in instance]
             if not line:
                 break
 
-            if(line[0] == 'ROW'):    
+            if(line[0] == const.ROW):    
                 rows = line[1:]
             
-            elif (line[0] == 'COLUMN'):    
+            elif (line[0] == const.COLUMN):    
                 columns = line[1:]
             
-            elif(line[0] == 'HINT'):
+            elif(line[0] == const.HINT):
                 hints.append(line[1:])
                 
             else:
                  continue
-        print(rows, "\n", columns,"\n", hints)
+             
         return Board(rows, columns, hints)
         
         
