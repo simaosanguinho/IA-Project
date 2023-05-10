@@ -58,36 +58,34 @@ class Board:
             # update values for rows and columns
             self.rows[hint[0]] -= 1
             self.columns[hint[1]] -= 1
-
+    
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        return self.cells[row, col]
+        if (self.valid_cell(row, col)):
+            return self.cells[row, col]
+        else:
+            return None
+
+    def valid_cell(self, row: int, col: int) -> bool:
+        """Verifica se a célula é válida."""
+        return not (row < 0 or row > const.BOARD_SIZE or col < 0 or col > const.BOARD_SIZE)
 
     def set_value(self, row: int, col: int, value: str):
         """Atribui o valor na respetiva posição do tabuleiro."""
-        self.cells[row, col] = value
+        if (self.valid_cell(row, col)):
+            self.cells[row, col] = value
+        else:
+            return
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
-
-        if (row == 0):
-            return (None, self.cells[row+1, col])
-        elif (row == const.BOARD_SIZE):
-            return (self.cells[row-1, col], None)
-        else:
-            return (self.cells[row-1, col], self.cells[row+1, col])
+        return (self.get_value(row-1, col), self.get_value(row+1, col))
 
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-
-        if (col == 0):
-            return (None, self.get_value(row, col+1))
-        elif (col == const.BOARD_SIZE):
-            return (self.get_value(row, col-1), None)
-        else:
-            return (self.get_value(row, col-1), self.get_value(row, col+1))
+        return (self.get_value(row, col-1), self.get_value(row, col+1))
 
     @staticmethod
     def parse_instance():
@@ -142,7 +140,7 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        # TODO
+        
         pass
 
     def result(self, state: BimaruState, action):
@@ -182,8 +180,9 @@ if __name__ == "__main__":
     # Criar um estado com a configuração inicial:
     initial_state = BimaruState(board)
     # Mostrar valor na posição (3, 3):
-    print(initial_state.board.get_value(3, 3))
     # Realizar acção de inserir o valor w (água) na posição da linha 3 e coluna 3
-    result_state = problem.result(initial_state, (3, 3, 'w'))
+    result_state = problem.result(initial_state, (1, 1, 'w'))
+    print(result_state.board.get_value(1, 1))
+    print(result_state.board.adjacent_horizontal_values(0, 0))
     # Mostrar valor na posição (3, 3):
     print(result_state.board)
