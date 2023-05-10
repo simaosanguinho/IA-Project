@@ -2,11 +2,13 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes já definidas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 00:
-# 00000 Nome1
-# 00000 Nome2
+# Grupo 23:
+# 102082 Simão Sanguinho
+# 103252 José Pereira
 
 import sys
+from sys import stdin
+import numpy as np
 from search import (
     Problem,
     Node,
@@ -34,10 +36,27 @@ class BimaruState:
 
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
+    rows = []
+    columns = []
+    hints = []
+    matrix = np.matrix([])
+
+    def __init__(self, rows: list, columns: list, hints: list):
+        self.rows = rows
+        self.columns = columns
+        self.hints = hints
+
+        # create matrix for the board cells
+        self.matrix = np.matrix([[' ' for x in range(len(rows))] for y in range(len(columns))])
+        #add hints
+        for hint in hints:
+            self.matrix[int(hint[0]), int(hint[1])] = hint[2]
+        
+        print(self.matrix)
+
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        # TODO
         pass
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
@@ -63,8 +82,29 @@ class Board:
             > from sys import stdin
             > line = stdin.readline().split()
         """
-        # TODO
-        pass
+        rows = []
+        columns = []
+        hints = []
+        while True:
+            line = stdin.readline().split()
+            if not line:
+                break
+
+            if(line[0] == 'ROW'):    
+                rows = line[1:]
+            
+            elif (line[0] == 'COLUMN'):    
+                columns = line[1:]
+            
+            elif(line[0] == 'HINT'):
+                hints.append(line[1:])
+                
+            else:
+                 continue
+        print(rows, "\n", columns,"\n", hints)
+        return Board(rows, columns, hints)
+        
+        
 
     # TODO: outros metodos da classe
 
@@ -110,4 +150,6 @@ if __name__ == "__main__":
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.
+
+    board = Board.parse_instance()
     pass
