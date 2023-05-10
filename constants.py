@@ -12,7 +12,7 @@ WATER = '.'
 DEBUG = True
 
 import numpy as np
-def parseToDebug(cells: np.matrix):
+def parse_to_debug(cells: np.matrix):
     """Retorna uma string que representa o tabuleiro."""
     for row in range(BOARD_SIZE + 1):
         for col in range(BOARD_SIZE + 1):

@@ -21,7 +21,6 @@ from search import (
 )
 
 
-
 class BimaruState:
     state_id = 0
 
@@ -29,7 +28,7 @@ class BimaruState:
         self.board = board
         self.id = BimaruState.state_id
         BimaruState.state_id += 1
-        
+
     def __lt__(self, other):
         return self.id < other.id
 
@@ -49,10 +48,16 @@ class Board:
         self.hints = hints
 
         # create matrix for the board cells
-        self.cells = np.matrix([[' ' for x in range(len(rows))] for y in range(len(columns))])
-        #add hints
+        self.cells = np.matrix([[' ' for x in range(len(rows))]
+                               for y in range(len(columns))])
+        # add hints
         for hint in hints:
             self.cells[hint[0], hint[1]] = hint[2]
+            if (hint[2] == 'W'):
+                continue
+            # update values for rows and columns
+            self.rows[hint[0]] -= 1
+            self.columns[hint[1]] -= 1
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -65,7 +70,7 @@ class Board:
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
-              
+
         if (row == 0):
             return (None, self.cells[row+1, col])
         elif (row == const.BOARD_SIZE):
@@ -73,11 +78,10 @@ class Board:
         else:
             return (self.cells[row-1, col], self.cells[row+1, col])
 
-
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        
+
         if (col == 0):
             return (None, self.get_value(row, col+1))
         elif (col == const.BOARD_SIZE):
@@ -105,28 +109,27 @@ class Board:
             if not line:
                 break
 
-            if(line[0] == const.ROW):    
+            if (line[0] == const.ROW):
                 rows = line[1:]
-            
-            elif (line[0] == const.COLUMN):    
+
+            elif (line[0] == const.COLUMN):
                 columns = line[1:]
-            
-            elif(line[0] == const.HINT):
+
+            elif (line[0] == const.HINT):
                 hints.append(line[1:])
-                
+
             else:
-                 continue
-             
+                continue
+
         return Board(rows, columns, hints)
-    
+
     def __str__(self):
         """Retorna uma string que representa o tabuleiro."""
         if not const.DEBUG:
             return str(self.cells)
         else:
-            return str(const.parseToDebug(self.cells))
-            
-        
+            return str(const.parse_to_debug(self.cells))
+
     # TODO: outros metodos da classe
 
 
@@ -147,7 +150,7 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        
+
         board = state.board
         board.set_value(action[0], action[1], action[2])
         return BimaruState(board)
@@ -156,8 +159,7 @@ class Bimaru(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        # TODO
-        pass
+        return all(x == 0 for x in state.board.rows) and all(x == 0 for x in state.board.columns)
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -184,7 +186,4 @@ if __name__ == "__main__":
     # Realizar acção de inserir o valor w (água) na posição da linha 3 e coluna 3
     result_state = problem.result(initial_state, (3, 3, 'w'))
     # Mostrar valor na posição (3, 3):
-    print(result_state.board.get_value(3, 3))
     print(result_state.board)
-
-    
