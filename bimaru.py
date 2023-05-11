@@ -95,15 +95,11 @@ class Board:
         if (orientation == const.HORIZONTAL):
             for i in range(size):
                 cell = self.get_value(row, col+i)
-                if (cell == None):
-                    continue
-                if (self.get_value(row, col+i) == const.EMPTY):
+                if (cell == const.EMPTY):
                     self.set_value(row, col+i, value)
         elif (orientation == const.VERTICAL):
             for i in range(size):
                 cell = self.get_value(row+i, col)
-                if (cell == None):
-                    continue
                 if (cell == const.EMPTY):
                     self.set_value(row+i, col, value)
         
@@ -203,16 +199,15 @@ class Bimaru(Problem):
                     actions.append([row-1, col-1, '.', 4, const.VERTICAL])
                     actions.append([row-1, col+1, '.', 4, const.VERTICAL])
                 
-                    # DECIDIR SE METO UM M OU UM B - CRIAR UM ICONE INTERMEDIO
-                    actions.append([row+1, col, 'm', 1, const.HORIZONTAL]) 
                 
                 # bottom
                 if(board.get_value(row, col) in ['b', 'B']):
                     actions.append([row+1, col-1, '.', 3, const.HORIZONTAL])
                     actions.append([row-2, col-1, '.', 4, const.VERTICAL])
                     actions.append([row-2, col+1, '.', 4, const.VERTICAL])
-                    actions.append([row-1, col, 'm', 1, const.HORIZONTAL]) 
                 
+                
+                # middle 
         return actions
 
     def result(self, state: BimaruState, action):
@@ -256,10 +251,8 @@ if __name__ == "__main__":
     initial_state = BimaruState(board)
 
     actions = problem.actions(initial_state)
-    print('GGDGD')
-    for action in actions:
-        print(action)
-        
+    
+    for action in actions: 
         initial_state = problem.result(initial_state, action)
     
 
