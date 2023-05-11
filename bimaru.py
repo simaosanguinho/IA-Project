@@ -89,8 +89,8 @@ class Board:
         """Executa a ação de colocar um barco na posição (row, col) com
         orientação 'orientation' e tamanho 'size'."""
 
-        row, col, value, size, orientation = action[0], action[1], \
-            action[2], action[3], action[4]
+        row, col, value, size, orientation = action.row, action.col, \
+            action.value, action.size, action.orientation
 
         if (orientation == const.HORIZONTAL):
             for i in range(size):
@@ -150,6 +150,16 @@ class Board:
     # TODO: outros metodos da classe
 
 
+class Action():
+    def __init__(self, row: int, col: int, value: str, size: int, orientation: str):
+        self.row = row
+        self.col = col
+        self.value = value
+        self.size = size
+        self.orientation = orientation
+        
+        
+
 class Bimaru(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
@@ -163,17 +173,16 @@ class Bimaru(Problem):
         board = state.board
         actions = []
         
-
         # MAYBE MERGE BOTH LOOPS INTO ONE
         # any row with 0
         for row in range(const.BOARD_SIZE + 1):
             if (board.rows[row] == 0):
-                actions.append([row, 0, '.', const.BOARD_SIZE+1, const.HORIZONTAL])
+                actions.append(Action(row, 0, '.', const.BOARD_SIZE+1, const.HORIZONTAL))
 
         # any column with 0
         for col in range(const.BOARD_SIZE + 1):
             if (board.columns[col] == 0):
-                actions.append([0, col, '.', const.BOARD_SIZE+1, const.VERTICAL])
+                actions.append(Action(0, col, '.', const.BOARD_SIZE+1, const.VERTICAL))
 
         # fill the cells around an non water/empty cell with water
         for row in range(const.BOARD_SIZE + 1):
@@ -181,30 +190,30 @@ class Bimaru(Problem):
                 # circle - ALFA MAX CHAR 
                 if (board.get_value(row, col) in ['C', 'c']):
                     print("ENCONTREIU", "ROW", row, "COL", col)
-                    actions.append([row-1, col-1, '.', 3, const.HORIZONTAL])
-                    actions.append([row-1, col-1, '.', 3, const.VERTICAL])
-                    actions.append([row-1, col+1, '.', 3, const.VERTICAL])
-                    actions.append([row+1, col-1, '.', 3, const.HORIZONTAL])
+                    actions.append(Action(row-1, col-1, '.', 3, const.HORIZONTAL))
+                    actions.append(Action(row-1, col-1, '.', 3, const.VERTICAL))
+                    actions.append(Action(row-1, col+1, '.', 3, const.VERTICAL))
+                    actions.append(Action(row+1, col-1, '.', 3, const.HORIZONTAL))
                 # middle - fill diagonals with water    
                 elif (board.get_value(row, col) in ['m', 'M']):
-                    actions.append([row-1, col-1, '.', 1, const.HORIZONTAL])
-                    actions.append([row-1, col+1, '.', 1, const.HORIZONTAL])
-                    actions.append([row+1, col-1, '.', 1, const.HORIZONTAL])
-                    actions.append([row+1, col+1, '.', 1, const.HORIZONTAL])
+                    actions.append(Action(row-1, col-1, '.', 1, const.HORIZONTAL))
+                    actions.append(Action(row-1, col+1, '.', 1, const.HORIZONTAL))
+                    actions.append(Action(row+1, col-1, '.', 1, const.HORIZONTAL))
+                    actions.append(Action(row+1, col+1, '.', 1, const.HORIZONTAL))
                 
                 # top
                 elif (board.get_value(row, col) in ['t', 'T']):
                     print("ENCONTREIU", "ROW", row, "COL", col)
-                    actions.append([row-1, col-1, '.', 3, const.HORIZONTAL])
-                    actions.append([row-1, col-1, '.', 4, const.VERTICAL])
-                    actions.append([row-1, col+1, '.', 4, const.VERTICAL])
+                    actions.append(Action(row-1, col-1, '.', 3, const.HORIZONTAL))
+                    actions.append(Action(row-1, col-1, '.', 4, const.VERTICAL))
+                    actions.append(Action(row-1, col+1, '.', 4, const.VERTICAL))
                 
                 
                 # bottom
                 if(board.get_value(row, col) in ['b', 'B']):
-                    actions.append([row+1, col-1, '.', 3, const.HORIZONTAL])
-                    actions.append([row-2, col-1, '.', 4, const.VERTICAL])
-                    actions.append([row-2, col+1, '.', 4, const.VERTICAL])
+                    actions.append(Action(row+1, col-1, '.', 3, const.HORIZONTAL))
+                    actions.append(Action(row-2, col-1, '.', 4, const.VERTICAL))
+                    actions.append(Action(row-2, col+1, '.', 4, const.VERTICAL))
                 
                 
                 # middle 
