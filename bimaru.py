@@ -21,6 +21,26 @@ from search import (
 )
 
 
+class Action():
+    def __init__(self, row: int, col: int, value: str, size: int, orientation: str):
+        self.row = row
+        self.col = col
+        self.value = value
+        self.size = size
+        self.orientation = orientation
+        
+
+
+class Boat():
+    def __init__(self, row: int, col: int, length: int, orientation: str):
+        self.row = row
+        self.col = col
+        self.length = length
+        self.orientation = orientation
+        
+        
+
+
 class BimaruState:
     state_id = 0
 
@@ -28,6 +48,8 @@ class BimaruState:
         self.board = board
         self.id = BimaruState.state_id
         BimaruState.state_id += 1
+        
+        
 
     def __lt__(self, other):
         return self.id < other.id
@@ -38,10 +60,11 @@ class BimaruState:
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
 
-    def __init__(self, rows: list, columns: list, hints: list):
+    def __init__(self, rows: list, columns: list, hints: list, boats: list):
         self.rows = rows
         self.columns = columns
         self.hints = hints
+        self.boats = boats
         
         # create matrix for the board cells
         self.cells = np.matrix([[' ' for x in range(len(rows))]
@@ -55,6 +78,8 @@ class Board:
             # update values for rows and columns
             self.rows[hint[0]] -= 1
             self.columns[hint[1]] -= 1
+            
+        self.apply_hints()
     
 
     def get_value(self, row: int, col: int) -> str:
@@ -74,6 +99,8 @@ class Board:
             self.cells[row, col] = value
         else:
             return
+    
+    
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
@@ -84,30 +111,42 @@ class Board:
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
         return (self.get_value(row, col-1), self.get_value(row, col+1))
+    
+    def fill_row_with_water(self, row: int):
+        """Preenche a linha 'row' com água."""
+        for col in range(const.BOARD_SIZE+1):
+            if(self.get_value(row, col) == const.EMPTY):
+                self.set_value(row, col, const.WATER)
+    
+    def fill_column_with_water(self, col: int): 
+        """Preenche a coluna 'col' com água."""
+        for row in range(const.BOARD_SIZE+1):
+            if(self.get_value(row, col) == const.EMPTY):
+                self.set_value(row, col, const.WATER)
 
     def do_action(self, action):
         """Executa a ação de colocar um barco na posição (row, col) com
         orientação 'orientation' e tamanho 'size'."""
 
-        row, col, value, size, orientation = action[0], action[1], \
-            action[2], action[3], action[4]
+        row, col, value, size, orientation = action.row, action.col, \
+            action.value, action.size, action.orientation
 
+        
+    
         if (orientation == const.HORIZONTAL):
             for i in range(size):
                 cell = self.get_value(row, col+i)
-                if (cell == None):
-                    continue
-                if (self.get_value(row, col+i) == const.EMPTY):
+                if (cell == const.EMPTY):
                     self.set_value(row, col+i, value)
         elif (orientation == const.VERTICAL):
             for i in range(size):
                 cell = self.get_value(row+i, col)
-                if (cell == None):
-                    continue
                 if (cell == const.EMPTY):
                     self.set_value(row+i, col, value)
         
         else:
+            
+        
             return
 
     @staticmethod
@@ -124,6 +163,7 @@ class Board:
         rows = []
         columns = []
         hints = []
+        boats = []
         while True:
             instance = stdin.readline().split()
             line = [int(x) if x.isdigit() else x for x in instance]
@@ -141,9 +181,66 @@ class Board:
 
             else:
                 continue
+        board = Board(rows, columns, hints, boats)
+  
+        return board
 
-        return Board(rows, columns, hints)
+    
+    def apply_hints(self):
+        """Aplica as dicas ao tabuleiro."""
+        
+        actions = []
+        
+        # MAYBE MERGE BOTH LOOPS INTO ONE
+        # any row with 0
+        for row in range(const.BOARD_SIZE + 1):
+            if (self.rows[row] == 0):
+                self.fill_row_with_water(row)
 
+        # any column with 0
+        for col in range(const.BOARD_SIZE + 1):
+            if (self.columns[col] == 0):
+                self.fill_column_with_water(col)
+
+        # fill the cells around an non water/empty cell with water
+        for row in range(const.BOARD_SIZE + 1):
+            for col in range(const.BOARD_SIZE + 1):
+                # circle - ALFA MAX CHAR 
+                if (self.get_value(row, col) in ['C', 'c']):
+                    print("ENCONTREIU", "ROW", row, "COL", col)
+                    actions.append(Action(row-1, col-1, '.', 3, const.HORIZONTAL))
+                    actions.append(Action(row-1, col-1, '.', 3, const.VERTICAL))
+                    actions.append(Action(row-1, col+1, '.', 3, const.VERTICAL))
+                    actions.append(Action(row+1, col-1, '.', 3, const.HORIZONTAL))
+                    
+                # middle - fill diagonals with water    
+                elif (self.get_value(row, col) in ['m', 'M']):
+                    actions.append(Action(row-1, col-1, '.', 1, const.HORIZONTAL))
+                    actions.append(Action(row-1, col+1, '.', 1, const.HORIZONTAL))
+                    actions.append(Action(row+1, col-1, '.', 1, const.HORIZONTAL))
+                    actions.append(Action(row+1, col+1, '.', 1, const.HORIZONTAL))
+                
+                # top
+                elif (self.get_value(row, col) in ['t', 'T']):
+                    print("ENCONTREIU", "ROW", row, "COL", col)
+                    actions.append(Action(row-1, col-1, '.', 3, const.HORIZONTAL))
+                    actions.append(Action(row-1, col-1, '.', 4, const.VERTICAL))
+                    actions.append(Action(row-1, col+1, '.', 4, const.VERTICAL))
+                    
+                
+                
+                # bottom
+                if(self.get_value(row, col) in ['b', 'B']):
+                    actions.append(Action(row+1, col-1, '.', 3, const.HORIZONTAL))
+                    actions.append(Action(row-2, col-1, '.', 4, const.VERTICAL))
+                    actions.append(Action(row-2, col+1, '.', 4, const.VERTICAL))
+                    
+        
+        for action in actions:
+            self.do_action(action)
+        
+    
+    
     def __str__(self):
         """Retorna uma string que representa o tabuleiro."""
         if not const.DEBUG:
@@ -167,52 +264,8 @@ class Bimaru(Problem):
         board = state.board
         actions = []
         
-
-        # MAYBE MERGE BOTH LOOPS INTO ONE
-        # any row with 0
-        for row in range(const.BOARD_SIZE + 1):
-            if (board.rows[row] == 0):
-                actions.append([row, 0, '.', const.BOARD_SIZE+1, const.HORIZONTAL])
-
-        # any column with 0
-        for col in range(const.BOARD_SIZE + 1):
-            if (board.columns[col] == 0):
-                actions.append([0, col, '.', const.BOARD_SIZE+1, const.VERTICAL])
-
-        # fill the cells around an non water/empty cell with water
-        for row in range(const.BOARD_SIZE + 1):
-            for col in range(const.BOARD_SIZE + 1):
-                # circle - ALFA MAX CHAR 
-                if (board.get_value(row, col) in ['C', 'c']):
-                    print("ENCONTREIU", "ROW", row, "COL", col)
-                    actions.append([row-1, col-1, '.', 3, const.HORIZONTAL])
-                    actions.append([row-1, col-1, '.', 3, const.VERTICAL])
-                    actions.append([row-1, col+1, '.', 3, const.VERTICAL])
-                    actions.append([row+1, col-1, '.', 3, const.HORIZONTAL])
-                # middle - fill diagonals with water    
-                elif (board.get_value(row, col) in ['m', 'M']):
-                    actions.append([row-1, col-1, '.', 1, const.HORIZONTAL])
-                    actions.append([row-1, col+1, '.', 1, const.HORIZONTAL])
-                    actions.append([row+1, col-1, '.', 1, const.HORIZONTAL])
-                    actions.append([row+1, col+1, '.', 1, const.HORIZONTAL])
-                
-                # top
-                elif (board.get_value(row, col) in ['t', 'T']):
-                    print("ENCONTREIU", "ROW", row, "COL", col)
-                    actions.append([row-1, col-1, '.', 3, const.HORIZONTAL])
-                    actions.append([row-1, col-1, '.', 4, const.VERTICAL])
-                    actions.append([row-1, col+1, '.', 4, const.VERTICAL])
-                
-                    # DECIDIR SE METO UM M OU UM B - CRIAR UM ICONE INTERMEDIO
-                    actions.append([row+1, col, 'm', 1, const.HORIZONTAL]) 
-                
-                # bottom
-                if(board.get_value(row, col) in ['b', 'B']):
-                    actions.append([row+1, col-1, '.', 3, const.HORIZONTAL])
-                    actions.append([row-2, col-1, '.', 4, const.VERTICAL])
-                    actions.append([row-2, col+1, '.', 4, const.VERTICAL])
-                    actions.append([row-1, col, 'm', 1, const.HORIZONTAL]) 
-                
+          
+               
         return actions
 
     def result(self, state: BimaruState, action):
@@ -220,7 +273,6 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        
 
         board = state.board
         board.do_action(action)
@@ -249,19 +301,14 @@ if __name__ == "__main__":
     # Imprimir para o standard output no formato indicado.
 
     board = Board.parse_instance()
+    
     # Criar uma instância de Bimaru:
     problem = Bimaru(board)
     # Criar um estado com a configuração inicial:
     
     initial_state = BimaruState(board)
 
-    actions = problem.actions(initial_state)
-    print('GGDGD')
-    for action in actions:
-        print(action)
-        
-        initial_state = problem.result(initial_state, action)
-    
+
 
     
     print(initial_state.board)

@@ -2,9 +2,9 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes já definidas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 23:
-# 102082 Simão Sanguinho
-# 103252 José Pereira
+# Grupo 00:
+# 00000 Nome1
+# 00000 Nome2
 
 import sys
 from sys import stdin
@@ -38,24 +38,16 @@ class BimaruState:
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
 
-    def __init__(self, rows: list, columns: list, hints: list):
-        self.rows = rows
-        self.columns = columns
-        self.hints = hints
-
+    def __init__(self, rows: list, columns: list):
+        self.limit_rows = rows
+        self.limit_columns = columns
+        self.current_rows = [0] * 10
+        self.current_columns = [0] * 10
+        
         # create matrix for the board cells
         self.cells = np.matrix([[' ' for x in range(len(rows))]
                                for y in range(len(columns))])
-        # add hints
-        for hint in hints:
-            self.cells[hint[0], hint[1]] = hint[2]
-            if (hint[2] == 'W'):
-                continue
-            # update values for rows and columns
-            self.rows[hint[0]] -= 1
-            self.columns[hint[1]] -= 1
-
-        print(rows, columns)
+        
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -70,11 +62,15 @@ class Board:
 
     def set_value(self, row: int, col: int, value: str):
         """Atribui o valor na respetiva posição do tabuleiro."""
-        if (self.valid_cell(row, col)):
+        if (self.valid_cell(row, col) and self.cells[row, col] == const.EMPTY):
             self.cells[row, col] = value
+            
+            if(value not in ['W', '.']):
+                self.current_rows[row] += 1
+                self.current_columns[col] += 1
         else:
             return
-
+    
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
@@ -84,24 +80,40 @@ class Board:
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
         return (self.get_value(row, col-1), self.get_value(row, col+1))
+    
+    def fill_row_with_water(self, row: int):
+        """Preenche a linha 'row' com água."""
+        for col in range(const.BOARD_SIZE+1):
+            if(self.get_value(row, col) == const.EMPTY):
+                self.set_value(row, col, '.')
+    
+    def fill_column_with_water(self, col: int): 
+        """Preenche a coluna 'col' com água."""
+        for row in range(const.BOARD_SIZE+1):
+            if(self.get_value(row, col) == const.EMPTY):
+                self.set_value(row, col, '.')
 
-    def do_action(self, action):
-        """Executa a ação de colocar um barco na posição (row, col) com
-        orientação 'orientation' e tamanho 'size'."""
-
-        row, col, value, size, orientation = action[0], action[1], \
-            action[2], action[3], action[4]
-
+    def fill_segments_with_water(self, row: int, col: int, length: int, orientation: str):
+        """Preenche os segmentos de água adjacentes à posição (row, col)."""
+        
         if (orientation == const.HORIZONTAL):
-            for i in range(size+1):
-                if (self.get_value(row, col+i) == const.EMPTY):
-                    self.set_value(row, col+i, value)
+            for i in range(length):
+                cell = self.get_value(row, col+i)
+                if (cell == const.EMPTY):
+                    self.set_value(row, col+i, '.')
         elif (orientation == const.VERTICAL):
-            for i in range(size+1):
-                if (self.get_value(row+i, col) == const.EMPTY):
-                    self.set_value(row+i, col, value)    
-        else:
-            return
+            for i in range(length):
+                cell = self.get_value(row+i, col)
+                if (cell == const.EMPTY):
+                    self.set_value(row+i, col, '.')
+    
+    def fill_exausted_rows_cols(self):
+        """Preenche as linhas e colunas que já estão completas."""
+        for i in range(const.BOARD_SIZE+1):
+            if(self.current_rows[i] == self.limit_rows[i]):
+                self.fill_row_with_water(i)
+            if (self.current_columns[i] == self.limit_columns[i]):
+                self.fill_column_with_water(i)
 
     @staticmethod
     def parse_instance():
@@ -134,8 +146,57 @@ class Board:
 
             else:
                 continue
+            
+        board = Board(rows, columns)
+        
+        # add hints
+        for hint in hints:
+            row, col, value = hint[0], hint[1], hint[2]
+            board.set_value(row, col, value)
+        
+        # fill obvious rows/cols with water   
+        board.fill_exausted_rows_cols()
+        
+        # surround hints with water
+        for hint in hints:
+            row, col, value = hint[0], hint[1], hint[2]
+            # circle hint
+            if (value == 'C'):
+                for i in range(3):
+                    board.fill_segments_with_water(row - 1 + i, col - 1, 3, const.HORIZONTAL)
+            # top hint
+            if (value == 'T'):
+                for i in range(3):
+                    if (i == 0):
+                        board.fill_segments_with_water(row - 1 + i, col - 1, 3, const.HORIZONTAL)
+                    else:
+                        board.fill_segments_with_water(row - 1 + i, col - 1, 1, const.HORIZONTAL)
+                        board.fill_segments_with_water(row - 1 + i, col + 1, 1, const.HORIZONTAL)
 
-        return Board(rows, columns, hints)
+            # bottom hint
+            if  (value == 'B'):
+                for i in range(3):
+                    if (i == 2):
+                        board.fill_segments_with_water(row - 1 + i, col - 1, 3, const.HORIZONTAL)
+                    else:
+                        board.fill_segments_with_water(row - 1 + i, col - 1, 1, const.HORIZONTAL)
+                        board.fill_segments_with_water(row - 1 + i, col + 1, 1, const.HORIZONTAL)
+                    
+                
+            # middle hint
+            adjacent_water= [('.', '.'), ('.', 'None'), ('None', '.'), ('.',' '), (' ', '.')]
+            
+            if (value == 'M'):
+                print(board.adjacent_horizontal_values(row, col))
+                if (board.adjacent_horizontal_values(row, col) in adjacent_water):
+                    board.fill_segments_with_water(row - 2, col - 1, 5, const.VERTICAL)
+                    board.fill_segments_with_water(row - 2, col + 1, 5, const.VERTICAL)
+                elif (board.adjacent_vertical_values(row, col) in adjacent_water):
+                    board.fill_segments_with_water(row - 1, col - 2, 5, const.HORIZONTAL)
+                    board.fill_segments_with_water(row + 1, col - 2, 5, const.HORIZONTAL)
+     
+        return board
+    
 
     def __str__(self):
         """Retorna uma string que representa o tabuleiro."""
@@ -144,7 +205,6 @@ class Board:
         else:
             return str(const.parse_to_debug(self.cells))
 
-    # TODO: outros metodos da classe
 
 
 class Bimaru(Problem):
@@ -156,49 +216,23 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-
-        board = state.board
-        actions = []
-
-        # MAYBE MERGE BOTH LOOPS INTO ONE
-        # any row with 0
-        for row in range(const.BOARD_SIZE + 1):
-            if (board.rows[row] == 0):
-                actions.append("FILL ROW")
-
-        # any column with 0
-        for col in range(const.BOARD_SIZE + 1):
-            if (board.columns[col] == 0):
-                actions.append("FILL COLUMN")
-
-        # fill the cells around a circle
-        for row in range(const.BOARD_SIZE + 1):
-            for col in range(const.BOARD_SIZE + 1):
-                if (board.get_value(row, col) == const.CIRCLE):
-                    actions.append("FILL CIRCLE")
-
-        for row in range(const.BOARD_SIZE + 1):
-            for col in range(const.BOARD_SIZE + 1):
-                if (board.get_value(row, col) in ["T", "t"]):
-                    actions.append("FILL EMPTY")
-
-        return actions
+        # TODO
+        pass
 
     def result(self, state: BimaruState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-
-        board = state.board
-        board.do_action(action)
-        return BimaruState(board)
+        # TODO
+        pass
 
     def goal_test(self, state: BimaruState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        return all(x == 0 for x in state.board.rows) and all(x == 0 for x in state.board.columns)
+        # TODO
+        pass
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -206,6 +240,7 @@ class Bimaru(Problem):
         pass
 
     # TODO: outros metodos da classe
+
 
 
 if __name__ == "__main__":
@@ -216,14 +251,11 @@ if __name__ == "__main__":
     # Imprimir para o standard output no formato indicado.
 
     board = Board.parse_instance()
+    
     # Criar uma instância de Bimaru:
     problem = Bimaru(board)
     # Criar um estado com a configuração inicial:
-
+    
     initial_state = BimaruState(board)
-
-    actions = problem.actions(initial_state)
-    for action in actions:
-        initial_state = problem.result(initial_state, action)
 
     print(initial_state.board)

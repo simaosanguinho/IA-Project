@@ -16,6 +16,7 @@ TOP = '▲'
 BOTTOM = '▼'
 MIDDLE = '■'
 WATER = '░'
+MISTERY_D = '?'
 
 CIRCLE_D = '◉'
 RIGHT_D = '▶'
@@ -24,6 +25,7 @@ TOP_D = '▲'
 BOTTOM_D = '▼'
 MIDDLE_D = '■'
 WATER_D = '░'
+MISTERY_D = '?'
 
 DEBUG = True
 EMPTY = ' '
@@ -46,7 +48,9 @@ def parse_to_debug(cells: np.matrix):
             elif str(cells[row, col]) in ["W", "w", '.']:
                 cells[row, col] = WATER_D
             elif str(cells[row, col]) in ["C", "c"]:
-                cells[row, col] = CIRCLE_D
+                cells[row, col] = CIRCLE_D   
+            elif str(cells[row, col]) in ['?']:
+                cells[row, col] = MISTERY_D
             else:
                 continue
     return cells
