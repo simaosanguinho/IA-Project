@@ -81,6 +81,16 @@ class Board:
         respectivamente."""
         return (self.get_value(row, col-1), self.get_value(row, col+1))
     
+    def is_adjacent_water_horizontal(self, row: int, col: int) -> bool:
+        """Verifica se a célula está adjacente a água."""
+        up, down = self.adjacent_vertical_values(row, col)
+        return (up == '.' or down == '.' )
+    
+    def is_adjacent_water_vertical(self, row: int, col: int) -> bool:
+        """Verifica se a célula está adjacente a água."""
+        left, right = self.adjacent_horizontal_values(row, col)
+        return (left == '.' or right == '.' )
+    
     def fill_row_with_water(self, row: int):
         """Preenche a linha 'row' com água."""
         for col in range(const.BOARD_SIZE+1):
@@ -184,14 +194,12 @@ class Board:
                     
                 
             # middle hint
-            adjacent_water= [('.', '.'), ('.', 'None'), ('None', '.'), ('.',' '), (' ', '.')]
-            
             if (value == 'M'):
                 print(board.adjacent_horizontal_values(row, col))
-                if (board.adjacent_horizontal_values(row, col) in adjacent_water):
+                if (board.is_adjacent_water_vertical(row, col) ):
                     board.fill_segments_with_water(row - 2, col - 1, 5, const.VERTICAL)
                     board.fill_segments_with_water(row - 2, col + 1, 5, const.VERTICAL)
-                elif (board.adjacent_vertical_values(row, col) in adjacent_water):
+                elif (board.is_adjacent_water_horizontal(row, col)):
                     board.fill_segments_with_water(row - 1, col - 2, 5, const.HORIZONTAL)
                     board.fill_segments_with_water(row + 1, col - 2, 5, const.HORIZONTAL)
      
