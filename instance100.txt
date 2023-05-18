@@ -1,0 +1,5 @@
+ROW	8	8	8	8	8	8	8	8	8	8
+COLUMN	8	8	8	8	8	8	8	8	8	8
+6
+HINT    6   5   W
+HINT	6	6	M
