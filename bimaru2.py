@@ -6,7 +6,6 @@
 # 00000 Nome1
 # 00000 Nome2
 
-import sys
 from sys import stdin
 import constants as const
 import numpy as np
@@ -121,11 +120,13 @@ class Board:
                 self.fill_column_with_water(i)
 
     def surround_circle(self, row: int, col: int) -> None:
+        """ Preenche os segmentos de água em volta de um circulo."""
         for i in range(3):
             self.fill_segments_with_water(
                 row - 1 + i, col - 1, 3, const.HORIZONTAL)
 
     def surround_top(self, row: int, col: int) -> None:
+        """ Preenche os segmentos de água em volta de um top."""
         for i in range(3):
             if (i == 1):
                 self.fill_segments_with_water(
@@ -135,6 +136,7 @@ class Board:
                     row - 1, col - 1 + i, 4, const.VERTICAL)
 
     def surround_bottom(self, row: int, col: int) -> None:
+        """ Preenche os segmentos de água em volta de um bottom."""
         for i in range(3):
             if (i == 1):
                 self.fill_segments_with_water(
@@ -144,6 +146,7 @@ class Board:
                     row - 2, col - 1 + i, 4, const.VERTICAL)
 
     def surround_left(self, row: int, col: int) -> None:
+        """ Preenche os segmentos de água em volta de um left. """
         for i in range(3):
             if (i == 1):
                 self.fill_segments_with_water(
@@ -153,6 +156,7 @@ class Board:
                     row - 1 + i, col - 1, 4, const.HORIZONTAL)
 
     def surround_right(self, row: int, col: int) -> None:
+        """ Preenche os segmentos de água em volta de um right. """ 
         for i in range(3):
             if (i == 1):
                 self.fill_segments_with_water(
@@ -162,6 +166,7 @@ class Board:
                     row - 1 + i, col - 2, 4, const.HORIZONTAL)
 
     def surround_middle(self, row: int, col: int) -> None:
+        """ Preenche os segmentos de água em volta de um middle. """
         if (self.is_adjacent_water_vertical(row, col)):
             self.fill_segments_with_water(
                 row - 2, col - 1, 5, const.VERTICAL)
@@ -174,6 +179,7 @@ class Board:
                 row + 1, col - 2, 5, const.HORIZONTAL)
 
     def surround_hint(self, row: int, col: int, value: str) -> None:
+        """ Preenche os segmentos de água em volta de uma hint. """
         match value:
             case 'C':
                 self.surround_circle(row, col)
@@ -187,18 +193,11 @@ class Board:
                 self.surround_left(row, col)
             case 'M':
                 self.surround_middle(row, col)
-        
 
     @staticmethod
     def parse_instance() -> None:
         """Lê o test do standard input (stdin) que é passado como argumento
         e retorna uma instância da classe Board.
-
-        Por exemplo:
-            $ python3 bimaru.py < input_T01
-
-            > from sys import stdin
-            > line = stdin.readline().split()
         """
         rows = []
         columns = []
@@ -209,7 +208,7 @@ class Board:
             line = [int(x) if x.isdigit() else x for x in instance]
             if not line:
                 break
-            
+
             match line[0]:
                 case const.ROW:
                     rows = line[1:]
@@ -243,7 +242,7 @@ class Board:
 
 
 class Bimaru(Problem):
-    
+
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
         # TODO
@@ -286,11 +285,14 @@ if __name__ == "__main__":
     # Imprimir para o standard output no formato indicado.
 
     board = Board.parse_instance()
-
-    # Criar uma instância de Bimaru:
+    # Criar uma instância de Takuzu:
     problem = Bimaru(board)
-    # Criar um estado com a configuração inicial:
+    print(board)
 
-    initial_state = BimaruState(board)
-
-    print(initial_state.board)
+    # Obter o nó solução usando a procura em profundidade:
+    """ goal_node = depth_first_tree_search(problem)
+    # Verificar se foi atingida a solução
+    if goal_node:
+        print(goal_node.state)
+    else:
+        print("No solution found") """
