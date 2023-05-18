@@ -209,29 +209,27 @@ class Board:
             line = [int(x) if x.isdigit() else x for x in instance]
             if not line:
                 break
-            if (line[0] == const.ROW):
-                rows = line[1:]
-            elif (line[0] == const.COLUMN):
-                columns = line[1:]
-            elif (line[0] == const.HINT):
-                hints.append(line[1:])
-            else:
-                continue
+            
+            match line[0]:
+                case const.ROW:
+                    rows = line[1:]
+                case const.COLUMN:
+                    columns = line[1:]
+                case const.HINT:
+                    hints.append(line[1:])
+                case _:
+                    continue
 
         new_board = Board(rows, columns)
-
         # add hints
         for hint in hints:
             row, col, value = hint[0], hint[1], hint[2]
             new_board.set_value(row, col, value)
-
         # fill obvious rows/cols with water
         new_board.fill_exausted_rows_cols()
-
         # surround hints with water
         for hint in hints:
             row, col, value = hint[0], hint[1], hint[2]
-
             new_board.surround_hint(row, col, value)
 
         return new_board
@@ -245,6 +243,7 @@ class Board:
 
 
 class Bimaru(Problem):
+    
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
         # TODO
