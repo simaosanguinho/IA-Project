@@ -7,7 +7,8 @@
 # 103252 José Pereira
 
 import sys
-from search import Problem, Node, depth_first_tree_search, astar_search, breadth_first_tree_search, greedy_search
+from search import Problem, Node, depth_first_tree_search, astar_search
+# import constants as c
 import numpy as np
 
 
@@ -37,29 +38,29 @@ class Board:
         self.available_rows = [10] * 10
         self.available_cols = [10] * 10
         self.is_valid = True
-        self.waters = 0
 
         # create matrix for the board cells
-        self.cells = np.matrix([[' ' for x in range(len(rows))]
-                               for y in range(len(columns))])
+        self.cells = [[" "] * 10 for _ in range(10)]
 
     def deepcopy(self, board):
         """ Retorna uma cópia do tabuleiro."""
         new_board = Board(board.limit_rows, board.limit_columns)
-        new_board.cells = np.copy(board.cells)
+        new_board.cells = [[" "] * 10 for _ in range(10)]
+        for row in range(10):
+            for col in range(10):
+                new_board.cells[row][col] = board.cells[row][col]
         new_board.current_boat_rows = board.current_boat_rows.copy()
         new_board.current_boat_columns = board.current_boat_columns.copy()
         new_board.available_boats = board.available_boats.copy()
         new_board.available_rows = board.available_rows.copy()
         new_board.available_cols = board.available_cols.copy()
         new_board.is_valid = board.is_valid
-        new_board.waters = board.waters
         return new_board
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if (self.valid_cell(row, col)):
-            return self.cells[row, col]
+            return self.cells[row][col]
 
     def valid_cell(self, row: int, col: int) -> bool:
         """Verifica se a célula é válida."""
@@ -67,7 +68,7 @@ class Board:
 
     def temp_set_value(self, row: int, col: int, value: str) -> None:
         """ Atribui temporariamente o valor na respetiva posição do tabuleiro."""
-        self.cells[row, col] = value
+        self.cells[row][col] = value
         if value == " ":
             self.current_boat_columns[col] -= 1
             self.current_boat_rows[row] -= 1
@@ -81,12 +82,11 @@ class Board:
 
     def set_value(self, row: int, col: int, value: str) -> None:
         """Atribui o valor na respetiva posição do tabuleiro."""
-        if (self.valid_cell(row, col) and self.cells[row, col] == " "):
-            self.cells[row, col] = value
+        if (self.valid_cell(row, col) and self.cells[row][col] == " "):
+            self.cells[row][col] = value
             self.available_rows[row] -= 1
             self.available_cols[col] -= 1
-            if (value == '.'):
-                self.waters += 1
+
             if (value not in ['W', '.']):
                 self.current_boat_rows[row] += 1
                 self.current_boat_columns[col] += 1
@@ -281,14 +281,12 @@ class Board:
         actions = []
         if self.is_valid == False:
             return actions
-        
+
         # se é possível adicionar um barco de tamanho 4
         if (4 in self.available_boats):
             for i in range(10):
                 for j in range(10):
                     value = self.get_value(i, j)
-                    if value == 'x':
-                        continue
                     if (self.is_possible_to_add_boat(i, j, 4, "H")):
                         actions.append((i, j, 4, "H"))
 
@@ -337,8 +335,6 @@ class Board:
             for i in range(10):
                 for j in range(10):
                     value = self.get_value(i, j)
-                    if value == 'x':
-                        continue
                     if (self.is_possible_to_add_boat(i, j, 3, "H")):
                         actions.append((i, j, 3, "H"))
 
@@ -384,8 +380,6 @@ class Board:
             for i in range(10):
                 for j in range(10):
                     value = self.get_value(i, j)
-                    if value == 'x':
-                        continue
                     if (self.is_possible_to_add_boat(i, j, 2, "H")):
                         actions.append((i, j, 2, "H"))
                     if (self.is_possible_to_add_boat(i, j, 2, "V")):
@@ -420,9 +414,6 @@ class Board:
         if (1 in self.available_boats):
             for i in range(10):
                 for j in range(10):
-                    value = self.get_value(i, j)
-                    if (value == 'x'):
-                        continue
                     if (self.is_possible_to_add_boat(i, j, 1, "H")):
                         actions.append((i, j, 1, "H"))
             return actions
@@ -583,12 +574,8 @@ class Board:
 
     def __str__(self) -> str:
         """Retorna uma string que representa o tabuleiro."""
-        board = ""
-        for i in range(10):
-            for j in range(10):
-                board += self.get_value(i, j)
-            board += "\n"
-        return board[:-1]
+        #return str(c.parse_to_debug(self.board ))
+        return "\n".join(["".join([self.get_value(i, j) for j in range(10)]) for i in range(10)])
 
 
 class Bimaru(Problem):
@@ -612,9 +599,8 @@ class Bimaru(Problem):
         row, col, length, orientation = action
         new_board.add_boat(row, col, length, orientation)
         new_board.fill_exausted_rows_cols()
-
+        
         new_board.check_valid()
-
         return BimaruState(new_board)
 
     def goal_test(self, state: BimaruState):
@@ -629,22 +615,18 @@ class Bimaru(Problem):
         if node.action is None:
             return np.inf
         
-        water_cells = node.state.board.waters
         index_sum = 0
         for i in range(10):
             index_sum += abs(node.state.board.current_boat_rows[i] - node.state.board.limit_rows[i])
             index_sum += abs(node.state.board.current_boat_columns[i] - node.state.board.limit_columns[i])
 
-        
-      
+        water_cells = sum(row.count('.') for row in node.state.board.cells)
 
         # Combine the factors to create a heuristic estimate
         h_value =   water_cells * index_sum
         
 
         return h_value 
-
-
 
     # TODO: outros metodos da classe
     

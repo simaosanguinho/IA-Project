@@ -35,22 +35,22 @@ def parse_to_debug(cells: np.matrix):
     """Retorna uma string que representa o tabuleiro."""
     for row in range(BOARD_SIZE + 1):
         for col in range(BOARD_SIZE + 1):
-            if str(cells[row, col]) in ["T", "t"]:
-                cells[row, col] = TOP_D
-            elif str(cells[row, col]) in ["B", "b"]:
-                cells[row, col] = BOTTOM_D
-            elif str(cells[row, col]) in ["L", "l"]:
-                cells[row, col] = LEFT_D
-            elif str(cells[row, col]) in ["R", "r"]:
-                cells[row, col] = RIGHT_D
-            elif str(cells[row, col]) in ["M", "m"]:
-                cells[row, col] = MIDDLE_D
-            elif str(cells[row, col]) in ["W", "w", '.']:
-                cells[row, col] = WATER_D
-            elif str(cells[row, col]) in ["C", "c"]:
-                cells[row, col] = CIRCLE_D   
-            elif str(cells[row, col]) in ['?']:
-                cells[row, col] = MISTERY_D
+            if str(cells[row][col]) in ["T", "t"]:
+                cells[row][col] = TOP_D
+            elif str(cells[row][col]) in ["B", "b"]:
+                cells[row][col] = BOTTOM_D
+            elif str(cells[row][col]) in ["L", "l"]:
+                cells[row][col] = LEFT_D
+            elif str(cells[row][col]) in ["R", "r"]:
+                cells[row][col] = RIGHT_D
+            elif str(cells[row][col]) in ["M", "m"]:
+                cells[row][col] = MIDDLE_D
+            elif str(cells[row][col]) in ["W", "w", '.']:
+                cells[row][col] = WATER_D
+            elif str(cells[row][col]) in ["C", "c"]:
+                cells[row][col] = CIRCLE_D   
+            elif str(cells[row][col]) in ['?']:
+                cells[row][col] = MISTERY_D
             else:
                 continue
     return cells
