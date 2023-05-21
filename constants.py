@@ -27,7 +27,7 @@ MIDDLE_D = '■'
 WATER_D = '░'
 MISTERY_D = '?'
 
-DEBUG = True
+DEBUG = False
 EMPTY = ' '
 
 import numpy as np
