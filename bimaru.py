@@ -6,9 +6,17 @@
 # 102082 Simão Sanguinho
 # 103252 José Pereira
 
-import sys
-from search import Problem, Node, depth_first_tree_search, astar_search, breadth_first_tree_search, greedy_search
 import numpy as np
+import sys
+from search import (
+    Problem,
+    Node,
+    astar_search,
+    breadth_first_tree_search,
+    depth_first_tree_search,
+    greedy_search,
+    recursive_best_first_search,
+)
 
 
 class BimaruState:
@@ -27,34 +35,36 @@ class BimaruState:
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
 
-    def __init__(self, rows: list, columns: list):
+    def __init__(self, cells, rows: list, columns: list,
+                 current_boat_rows: list, current_boat_columns: list,
+                 available_boats: list, available_rows: list,
+                 available_cols: list, is_valid: bool, waters: int):
         """ Inicializa o tabuleiro com as dimensões dadas."""
+        self.cells = cells
         self.limit_rows = rows
         self.limit_columns = columns
-        self.current_boat_rows = [0] * 10
-        self.current_boat_columns = [0] * 10
-        self.available_boats = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]
-        self.available_rows = [10] * 10
-        self.available_cols = [10] * 10
-        self.is_valid = True
-        self.waters = 0
-
-        # create matrix for the board cells
-        self.cells = np.matrix([[' ' for x in range(len(rows))]
-                               for y in range(len(columns))])
+        self.current_boat_rows = current_boat_rows
+        self.current_boat_columns = current_boat_columns
+        self.available_boats = available_boats
+        self.available_rows = available_rows
+        self.available_cols = available_cols
+        self.is_valid = is_valid
+        self.waters = waters
 
     def deepcopy(self, board):
         """ Retorna uma cópia do tabuleiro."""
-        new_board = Board(board.limit_rows, board.limit_columns)
-        new_board.cells = np.copy(board.cells)
-        new_board.current_boat_rows = board.current_boat_rows.copy()
-        new_board.current_boat_columns = board.current_boat_columns.copy()
-        new_board.available_boats = board.available_boats.copy()
-        new_board.available_rows = board.available_rows.copy()
-        new_board.available_cols = board.available_cols.copy()
-        new_board.is_valid = board.is_valid
-        new_board.waters = board.waters
-        return new_board
+
+        new_cells = np.copy(board.cells)
+        current_boat_rows = board.current_boat_rows.copy()
+        current_boat_columns = board.current_boat_columns.copy()
+        available_boats = board.available_boats.copy()
+        available_rows = board.available_rows.copy()
+        available_cols = board.available_cols.copy()
+        is_valid = board.is_valid
+        waters = board.waters
+        return Board(new_cells, board.limit_rows, board.limit_columns,
+                     current_boat_rows, current_boat_columns, available_boats,
+                     available_rows, available_cols, is_valid, waters)
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -66,7 +76,7 @@ class Board:
         return not (row < 0 or row > 9 or col < 0 or col > 9)
 
     def temp_set_value(self, row: int, col: int, value: str) -> None:
-        """ Atribui temporariamente o valor na respetiva posição do tabuleiro."""
+        """ Atribui temporariamente o valor na posição do tabuleiro."""
         self.cells[row, col] = value
         if value == " ":
             self.current_boat_columns[col] -= 1
@@ -117,8 +127,10 @@ class Board:
         left, right = self.adjacent_horizontal_values(row, col)
         up_left, up_right = self.adjacent_horizontal_values(row-1, col)
         down_left, down_right = self.adjacent_horizontal_values(row+1, col)
-        return (up in ['.', 'W', None] and down in ['.', 'W', None] and left in ['.', 'W', None] and right in ['.', 'W', None]
-                and up_left in ['.', 'W', None] and up_right in ['.', 'W', None] and down_left in ['.', 'W', None] and down_right in ['.', 'W', None])
+        return (up in ['.', 'W', None] and down in ['.', 'W', None] and
+                left in ['.', 'W', None] and right in ['.', 'W', None]
+                and up_left in ['.', 'W', None] and up_right in ['.', 'W', None]
+                and down_left in ['.', 'W', None] and down_right in ['.', 'W', None])
 
     def fill_row_with_water(self, row: int) -> None:
         """Preenche a linha 'row' com água."""
@@ -130,7 +142,8 @@ class Board:
         for row in range(10):
             self.set_value(row, col, '.')
 
-    def fill_segments_with_water(self, row: int, col: int, length: int, orientation: str) -> None:
+    def fill_segments_with_water(self, row: int, col: int,
+                                 length: int, orientation: str) -> None:
         """Preenche segmentos de água"""
         if (orientation == "H"):
             for i in range(length):
@@ -209,7 +222,8 @@ class Board:
         elif (value == 'M'):
             self.surround_middle(row, col)
 
-    def check_valid_laterals(self, l1: int, l2: int, l3: int, l4: int, l5: int, l6: int) -> bool:
+    def check_valid_laterals(self, l1: int, l2: int, l3: int, 
+                             l4: int, l5: int, l6: int) -> bool:
         """ Verifica se os laterais de um barco são válidos."""
         if (l1 not in [' ', '.', 'W', None] or l2 not in [' ', '.', 'W', None]):
             return False
@@ -234,11 +248,13 @@ class Board:
                 return False
 
             left_up, left_down = self.adjacent_vertical_values(row, col-1)
-            right_up, right_down = self.adjacent_vertical_values(row, col+length)
+            right_up, right_down = self.adjacent_vertical_values(
+                row, col+length)
             left = self.get_value(row, col-1)
             right = self.get_value(row, col+length)
             # se os laterais do barco não são válidos
-            if not self.check_valid_laterals(left, right, left_up, left_down, right_up, right_down):
+            if not self.check_valid_laterals(left, right, left_up, left_down, 
+                                             right_up, right_down):
                 return False
 
             for i in range(length):
@@ -281,13 +297,13 @@ class Board:
         actions = []
         if self.is_valid == False:
             return actions
-        
+
         # se é possível adicionar um barco de tamanho 4
         if (4 in self.available_boats):
             for i in range(10):
                 for j in range(10):
                     value = self.get_value(i, j)
-                    if value == 'x':
+                    if value in ['.', 'W']:
                         continue
                     if (self.is_possible_to_add_boat(i, j, 4, "H")):
                         actions.append((i, j, 4, "H"))
@@ -295,30 +311,30 @@ class Board:
                     if (self.is_possible_to_add_boat(i, j, 4, "V")):
                         actions.append((i, j, 4, "V"))
 
-                    if (value in ["T", "t"]):
+                    if (value == "T"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i+1, j, 3, "V")):
                             actions.append((i, j, 4, "V"))
                         self.temp_set_value(i, j, value)
 
-                    if (value in ["B", "b"]):
+                    if (value == "B"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i - 3, j, 3, "V")):
                             actions.append((i - 3, j, 4, "V"))
                         self.temp_set_value(i, j, value)
 
-                    if (value in ["R", "r"]):
+                    if (value == "R"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i, j - 3, 3, "H")):
                             actions.append((i, j - 3, 4, "H"))
                         self.temp_set_value(i, j, value)
 
-                    if (value in ["L", "l"]):
+                    if (value == "L"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i, j + 1, 3, "H")):
                             actions.append((i, j, 4, "H"))
                         self.temp_set_value(i, j, value)
-                    if (value in ["M", "m"]):
+                    if (value == "M"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i, j - 1, 4, "H")):
                             actions.append((i, j-1, 4, "H"))
@@ -337,7 +353,7 @@ class Board:
             for i in range(10):
                 for j in range(10):
                     value = self.get_value(i, j)
-                    if value == 'x':
+                    if value in ['.', 'W']:
                         continue
                     if (self.is_possible_to_add_boat(i, j, 3, "H")):
                         actions.append((i, j, 3, "H"))
@@ -345,31 +361,31 @@ class Board:
                     if (self.is_possible_to_add_boat(i, j, 3, "V")):
                         actions.append((i, j, 3, "V"))
 
-                    if (value in ["T", "t"]):
+                    if (value == "T"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i+1, j, 2, "V")):
                             actions.append((i, j, 3, "V"))
                         self.temp_set_value(i, j, value)
 
-                    if (value in ["B", "b"]):
+                    if (value == "B"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i - 2, j, 2, "V")):
                             actions.append((i - 2, j, 3, "V"))
                         self.temp_set_value(i, j, value)
 
-                    if (value in ["R", "r"]):
+                    if (value == "R"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i, j - 2, 2, "H")):
                             actions.append((i, j - 2, 3, "H"))
                         self.temp_set_value(i, j, value)
 
-                    if (value in ["L", "l"]):
+                    if (value == "L"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i, j + 1, 2, "H")):
                             actions.append((i, j, 3, "H"))
                         self.temp_set_value(i, j, value)
 
-                    if (value in ["M", "m"]):
+                    if (value == "M"):
                         value = self.get_value(i, j)
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i, j - 1, 3, "H")):
@@ -384,32 +400,32 @@ class Board:
             for i in range(10):
                 for j in range(10):
                     value = self.get_value(i, j)
-                    if value == 'x':
+                    if value in ['.', 'W']:
                         continue
                     if (self.is_possible_to_add_boat(i, j, 2, "H")):
                         actions.append((i, j, 2, "H"))
                     if (self.is_possible_to_add_boat(i, j, 2, "V")):
                         actions.append((i, j, 2, "V"))
 
-                    if (value in ["T", "t"]):
+                    if (value == "T"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i+1, j, 1, "V")):
                             actions.append((i, j, 2, "V"))
                         self.temp_set_value(i, j, value)
 
-                    if (value in ["B", "b"]):
+                    if (value == "B"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i - 1, j, 1, "V")):
                             actions.append((i-1, j, 2, "V"))
                         self.temp_set_value(i, j, value)
 
-                    if (value in ["R", "r"]):
+                    if (value == "R"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i, j - 1, 1, "H")):
                             actions.append((i, j-1, 2, "H"))
                         self.temp_set_value(i, j, value)
 
-                    if (value in ["L", "l"]):
+                    if (value == "L"):
                         self.temp_set_value(i, j, " ")
                         if (self.is_possible_to_add_boat(i, j + 1, 1, "H")):
                             actions.append((i, j, 2, "H"))
@@ -421,7 +437,7 @@ class Board:
             for i in range(10):
                 for j in range(10):
                     value = self.get_value(i, j)
-                    if (value == 'x'):
+                    if value in ['.', 'W']:
                         continue
                     if (self.is_possible_to_add_boat(i, j, 1, "H")):
                         actions.append((i, j, 1, "H"))
@@ -437,66 +453,65 @@ class Board:
     def add_boat_size_2_H(self, row: int, col: int) -> None:
         """ Adiciona um barco de tamanho 2 na posição (row, col) com orientação horizontal."""
         self.set_value(row, col, "l")
-        self.set_value(row, col+1, "r")
+        self.set_value(row, col + 1, "r")
         self.surround_left(row, col)
-        self.surround_right(row, col+1)
+        self.surround_right(row, col + 1)
         self.available_boats.remove(2)
 
     def add_boat_size_2_V(self, row: int, col: int) -> None:
         """ Adiciona um barco de tamanho 2 na posição (row, col) com orientação vertical."""
         self.set_value(row, col, "t")
-        self.set_value(row+1, col, "b")
+        self.set_value(row + 1, col, "b")
         self.surround_top(row, col)
-        self.surround_bottom(row+1, col)
+        self.surround_bottom(row + 1, col)
         self.available_boats.remove(2)
 
     def add_boat_size_3_H(self, row: int, col: int) -> None:
         """ Adiciona um barco de tamanho 3 na posição (row, col) com orientação horizontal."""
         self.set_value(row, col, "l")
-        self.set_value(row, col+1, "m")
-        self.set_value(row, col+2, "r")
+        self.set_value(row, col + 1, "m")
+        self.set_value(row, col + 2, "r")
         self.surround_left(row, col)
-        self.surround_middle(row, col+1)
-        self.surround_right(row, col+2)
+        self.surround_middle(row, col + 1)
+        self.surround_right(row, col + 2)
         self.available_boats.remove(3)
 
     def add_boat_size_3_V(self, row: int, col: int) -> None:
         """ Adiciona um barco de tamanho 3 na posição (row, col) com orientação vertical."""
         self.set_value(row, col, "t")
-        self.set_value(row+1, col, "m")
-        self.set_value(row+2, col, "b")
+        self.set_value(row + 1, col, "m")
+        self.set_value(row + 2, col, "b")
         self.surround_top(row, col)
-        self.surround_middle(row+1, col)
-        self.surround_bottom(row+2, col)
+        self.surround_middle(row + 1, col)
+        self.surround_bottom(row + 2, col)
         self.available_boats.remove(3)
 
     def add_boat_size_4_H(self, row: int, col: int) -> None:
         """ Adiciona um barco de tamanho 4 na posição (row, col) com orientação horizontal. """
         self.set_value(row, col, "l")
-        self.set_value(row, col+1, "m")
-        self.set_value(row, col+2, "m")
-        self.set_value(row, col+3, "r")
+        self.set_value(row, col + 1, "m")
+        self.set_value(row, col + 2, "m")
+        self.set_value(row, col + 3, "r")
         self.surround_left(row, col)
-        self.surround_middle(row, col+1)
-        self.surround_middle(row, col+2)
-        self.surround_right(row, col+3)
+        self.surround_middle(row, col + 1)
+        self.surround_middle(row, col + 2)
+        self.surround_right(row, col + 3)
         self.available_boats.remove(4)
 
     def add_boat_size_4_V(self, row: int, col: int) -> None:
         """ Adiciona um barco de tamanho 4 na posição (row, col) com orientação vertical. """
         self.set_value(row, col, "t")
-        self.set_value(row+1, col, "m")
-        self.set_value(row+2, col, "m")
-        self.set_value(row+3, col, "b")
+        self.set_value(row + 1, col, "m")
+        self.set_value(row + 2, col, "m")
+        self.set_value(row + 3, col, "b")
         self.surround_top(row, col)
-        self.surround_middle(row+1, col)
-        self.surround_middle(row+2, col)
-        self.surround_bottom(row+3, col)
+        self.surround_middle(row + 1, col)
+        self.surround_middle(row + 2, col)
+        self.surround_bottom(row + 3, col)
         self.available_boats.remove(4)
 
     def add_boat(self, row: int, col: int, length: int, orientation: str) -> None:
         """ Adiciona um barco de tamanho 'length' na posição (row, col) com orientação 'orientation'."""
-
         if length == 1:
             self.add_boat_size_1(row, col)
         elif length == 2:
@@ -514,6 +529,8 @@ class Board:
                 self.add_boat_size_4_H(row, col)
             elif (orientation == "V"):
                 self.add_boat_size_4_V(row, col)
+        else:
+            raise ValueError("Invalid boat length")
 
     def check_valid(self) -> None:
         """ Verifica se a instância é válida."""
@@ -522,6 +539,10 @@ class Board:
                 if (self.get_value(i, j) not in [" ", ".", "W", "C", "c"]):
                     if self.surrounded_by_water(i, j):
                         self.is_valid = False
+            if self.limit_rows[i] > self.available_rows[i] + self.current_boat_rows[i]:
+                self.is_valid = False
+            elif self.limit_columns[i] > self.available_cols[i] + self.current_boat_columns[i]:
+                self.is_valid = False
 
     @staticmethod
     def parse_instance() -> None:
@@ -545,7 +566,18 @@ class Board:
             elif entry == "HINT":
                 hints.append(line[1:])
 
-        new_board = Board(rows, columns)
+        current_boat_rows = [0] * 10
+        current_boat_columns = [0] * 10
+        available_boats = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]
+        available_rows = [10] * 10
+        available_cols = [10] * 10
+        is_valid = True
+        waters = 0
+        cells = np.array([[' ' for x in range(len(rows))]
+                          for y in range(len(columns))])
+
+        new_board = Board(cells, rows, columns, current_boat_rows, current_boat_columns,
+                          available_boats, available_rows, available_cols, is_valid, waters)
 
         # adiciona hints e remove barcos se estiverem inteiros
         for hint in hints:
@@ -559,30 +591,48 @@ class Board:
                 if [row + 1, col, "B"] in hints:
                     new_board.available_boats.remove(2)
             if value == 'R':
-                if [row, col-1, "L"] in hints:
+                if [row, col - 1, "L"] in hints:
                     new_board.available_boats.remove(2)
             if value == 'M':
                 # tamanho 3
-                if [row, col-1, "L"] in hints and [row, col+1, "R"] in hints:
+                if [row, col - 1, "L"] in hints and [row, col + 1, "R"] in hints:
                     new_board.available_boats.remove(3)
-                if [row-1, col, "T"] in hints and [row+1, col, "B"] in hints:
+                if [row - 1, col, "T"] in hints and [row + 1, col, "B"] in hints:
                     new_board.available_boats.remove(3)
                 # tamanho 4
-                if [row, col-1, "L"] in hints and [row, col+1, "M"] in hints and [row, col+2, "R"] in hints:
+                if [row, col - 1, "L"] in hints and [row, col + 1, "M"] in hints and [row, col + 2, "R"] in hints:
                     new_board.available_boats.remove(4)
-                if [row-1, col, "T"] in hints and [row+1, col, "M"] in hints and [row+2, col, "B"] in hints:
+                if [row - 1, col, "T"] in hints and [row + 1, col, "M"] in hints and [row + 2, col, "B"] in hints:
                     new_board.available_boats.remove(4)
         # preencher as linhas/colunas que já estão cheias
         new_board.fill_exausted_rows_cols()
-        
+
         for hint in hints:
             row, col, value = hint[0], hint[1], hint[2]
             new_board.surround_hint_with_water(row, col, value)
 
         return new_board
 
+    def fill_exhausted_around_boat(self, row: int, col: int, length: int, orientation: str) -> None:
+        """Preenche as linhas e colunas que ja estao cheias e que intersetam o barco."""
+        if orientation == "H":
+            if (self.current_boat_rows[row] == self.limit_rows[row]):
+                self.fill_row_with_water(row)
+            for i in range(length):
+                if (self.current_boat_columns[col + i] == self.limit_columns[col + i]):
+                    self.fill_column_with_water(col + i)
+        elif orientation == "V":
+            if (self.current_boat_columns[col] == self.limit_columns[col]):
+                self.fill_column_with_water(col)
+            for i in range(length):
+                if (self.current_boat_rows[row + i] == self.limit_rows[row + i]):
+                    self.fill_row_with_water(row + i)
+
     def __str__(self) -> str:
         """Retorna uma string que representa o tabuleiro."""
+        # new_board  = self.deepcopy(self)
+        # return str(c.parse_to_debug(new_board.cells))
+
         board = ""
         for i in range(10):
             for j in range(10):
@@ -607,14 +657,11 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-
         new_board = state.board.deepcopy(state.board)
         row, col, length, orientation = action
         new_board.add_boat(row, col, length, orientation)
-        new_board.fill_exausted_rows_cols()
-
+        new_board.fill_exhausted_around_boat(row, col, length, orientation)
         new_board.check_valid()
-
         return BimaruState(new_board)
 
     def goal_test(self, state: BimaruState):
@@ -628,26 +675,35 @@ class Bimaru(Problem):
         """Função heuristica utilizada para a procura A*."""
         if node.action is None:
             return np.inf
-        
-        water_cells = node.state.board.waters
-        index_sum = 0
+
+        x = node.state.board.available_rows
+        y = node.state.board.limit_rows
+        z = node.state.board.current_boat_rows
+        x1 = node.state.board.available_cols
+        y1 = node.state.board.limit_columns
+        z1 = node.state.board.current_boat_columns
+        heu = 1
+        filled = 1
+        filled_rows = node.state.board.available_rows
+        filled_cols = node.state.board.available_cols
         for i in range(10):
-            index_sum += abs(node.state.board.current_boat_rows[i] - node.state.board.limit_rows[i])
-            index_sum += abs(node.state.board.current_boat_columns[i] - node.state.board.limit_columns[i])
+            if x[i] == y[i] - z[i]:
+                heu += x[i]
+            if x1[i] == y1[i] - z1[i]:
+                heu += x1[i]
+            if filled_rows[i] == 0:
+                filled += 1
+            if filled_cols[i] == 0:
+                filled += 1
+        remaining_boats = max(len(node.state.board.available_boats), 1)
 
-        
-      
-
-        # Combine the factors to create a heuristic estimate
-        h_value =   water_cells * index_sum
-        
-
-        return h_value 
-
-
-
-    # TODO: outros metodos da classe
-    
+        water_cells = node.state.board.waters  # alto é bom
+        index_sum = 0  # alto é mau
+        for i in range(10):
+            index_sum += node.state.board.limit_rows[i] - \
+                node.state.board.current_boat_rows[i]
+        empty_cells = 100 - water_cells - index_sum  # alto é mau
+        return 1/water_cells + index_sum + empty_cells * 1/heu + 1/filled + 1/remaining_boats
 
 
 if __name__ == "__main__":
@@ -655,7 +711,7 @@ if __name__ == "__main__":
     board = Board.parse_instance()
     # Usar uma técnica de procura para resolver a instância e obter o nó solução
     problem = Bimaru(board)
-    goal_node = astar_search(problem)
+    goal_node = depth_first_tree_search(problem)
     # Imprimir para o standard output no formato indicado
     if goal_node:
         print(goal_node.state.board)

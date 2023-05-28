@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the paths to the Python script, input file, and expected output file
-python_script="bimaru.py"
+python_script="migalha.py"
 expected_output_prefix="instances-students/instance"
 
 # Iterate over the file names from 1 to 10
